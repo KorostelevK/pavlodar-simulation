@@ -1,8 +1,7 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
-  <title>Пересекающиеся дороги и обход пробок</title>
+  <title>Адаптивные маршруты в стиле муравьёв</title>
   <style>
     body, html { margin: 0; padding: 0; overflow: hidden; }
     canvas { background: #eee; }
@@ -14,106 +13,78 @@
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight;const roads = { horizontal: [ canvas.height * 0.25, canvas.height * 0.5, canvas.height * 0.75 ], vertical: [ canvas.width * 0.25, canvas.width * 0.5, canvas.width * 0.75 ] };
 
-  // Сетка дорог: 3 горизонтальных и 3 вертикальных линии
-  const roads = {
-    horizontal: [
-      canvas.height * 0.25,
-      canvas.height * 0.5,
-      canvas.height * 0.75
-    ],
-    vertical: [
-      canvas.width * 0.25,
-      canvas.width * 0.5,
-      canvas.width * 0.75
-    ]
-  };
+const congestion = []; setInterval(() => { if (congestion.length > 2) congestion.shift();
 
-  // Пробки: каждые несколько секунд добавляем одну случайную пробку
-  const congestion = [];
-  setInterval(() => {
-    if (congestion.length > 2) congestion.shift(); // Убираем старые пробки
+const x = roads.vertical[Math.floor(Math.random() * roads.vertical.length)];
+const y = roads.horizontal[Math.floor(Math.random() * roads.horizontal.length)];
 
-    // Случайная точка пересечения
-    const x = roads.vertical[Math.floor(Math.random() * roads.vertical.length)];
-    const y = roads.horizontal[Math.floor(Math.random() * roads.horizontal.length)];
-    congestion.push({ x, y, radius: 50 });
-  }, 4000);
+congestion.push({ x, y, radius: 50 });
 
-  // Машины движутся по горизонтальным дорогам
-  const cars = Array.from({ length: 12 }, (_, i) => ({
-    x: Math.random() * canvas.width,
-    y: roads.horizontal[i % roads.horizontal.length],
-    speed: 2 + Math.random() * 2,
-    color: 'blue',
-    originalY: roads.horizontal[i % roads.horizontal.length]
-  }));
+}, 4000);
 
-  function drawRoads() {
-    ctx.strokeStyle = '#aaa';
-    ctx.lineWidth = 10;
+const cars = Array.from({ length: 12 }, (_, i) => ({ x: Math.random() * canvas.width, y: roads.horizontal[i % roads.horizontal.length], speed: 2 + Math.random() * 2, color: 'blue', seeking: false }));
 
-    roads.horizontal.forEach(y => {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    });
+function drawRoads() { ctx.strokeStyle = '#aaa'; ctx.lineWidth = 10;
 
-    roads.vertical.forEach(x => {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    });
+roads.horizontal.forEach(y => {
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(canvas.width, y);
+  ctx.stroke();
+});
+
+roads.vertical.forEach(x => {
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, canvas.height);
+  ctx.stroke();
+});
+
+}
+
+function drawCongestion() { ctx.fillStyle = 'red'; congestion.forEach(({ x, y, radius }) => { ctx.beginPath(); ctx.arc(x, y, radius, 0, 2 * Math.PI); ctx.fill(); }); }
+
+function drawCars() { cars.forEach(car => { ctx.fillStyle = car.seeking ? 'yellow' : car.color; ctx.beginPath(); ctx.arc(car.x, car.y, 7, 0, 2 * Math.PI); ctx.fill(); }); }
+
+function updateCars() { cars.forEach(car => { car.x += car.speed;
+
+congestion.forEach(({ x, y, radius }) => {
+    const distance = Math.hypot(car.x - x, car.y - y);
+    if (distance < radius + 7 && !car.seeking) {
+      car.seeking = true;
+      car.color = 'yellow';
+    }
+
+    if (car.seeking) {
+      const nextX = car.x + car.speed;
+      const nextY = car.y + (Math.random() - 0.5) * 2;
+
+      if (
+        nextX > 0 &&
+        nextX < canvas.width &&
+        nextY > 0 &&
+        nextY < canvas.height
+      ) {
+        car.x = nextX;
+        car.y = nextY;
+      }
+    }
+  });
+
+  if (car.x > canvas.width + 10) {
+    car.x = -10;
+    car.seeking = false;
+    car.color = 'blue';
   }
+});
 
-  function drawCongestion() {
-    ctx.fillStyle = 'red';
-    congestion.forEach(({ x, y, radius }) => {
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-  }
+}
 
-  function drawCars() {
-    cars.forEach(car => {
-      ctx.fillStyle = car.color;
-      ctx.beginPath();
-      ctx.arc(car.x, car.y, 7, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-  }
+function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); drawRoads(); drawCongestion(); drawCars(); updateCars(); requestAnimationFrame(animate); }
 
-  function updateCars() {
-    cars.forEach(car => {
-      car.x += car.speed;
+animate(); </script>
 
-      // Если машина входит в пробку, перескакивает на другую горизонтальную дорогу
-      congestion.forEach(({ x, y, radius }) => {
-        const distance = Math.hypot(car.x - x, car.y - y);
-        if (distance < radius + 7) {
-          const availableY = roads.horizontal.filter(roadY => roadY !== car.originalY);
-          car.y = availableY[Math.floor(Math.random() * availableY.length)];
-        }
-      });
-
-      if (car.x > canvas.width + 10) car.x = -10;
-    });
-  }
-
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawRoads();
-    drawCongestion();
-    drawCars();
-    updateCars();
-    requestAnimationFrame(animate);
-  }
-
-  animate();
-</script>
 </body>
 </html>
