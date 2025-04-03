@@ -1,8 +1,7 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
-  <title>Беспилотники (упрощённая версия)</title>
+  <title>Беспилотники с обходом пробок</title>
   <style>
     body, html { margin: 0; padding: 0; overflow: hidden; }
     canvas { background: #eee; }
@@ -14,36 +13,32 @@
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight;const roadsY = [canvas.height * 0.3, canvas.height * 0.5, canvas.height * 0.7]; const congestion = { x: canvas.width / 2, y: roadsY[1], radius: 50 };
 
-  const roadsY = [canvas.height * 0.3, canvas.height * 0.5, canvas.height * 0.7];
-  
-  const cars = Array.from({length: 8}, (_, i) => ({
-    x: Math.random() * canvas.width,
-    y: roadsY[i % roadsY.length],
-    speed: 2 + Math.random() * 3,
-    color: 'blue'
-  }));
+const cars = Array.from({length: 8}, (_, i) => ({ x: Math.random() * canvas.width, y: roadsY[i % roadsY.length], speed: 2 + Math.random() * 3, color: 'blue' }));
 
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function drawRoads() { ctx.fillStyle = '#aaa'; roadsY.forEach(y => ctx.fillRect(0, y - 5, canvas.width, 10)); }
 
-    ctx.fillStyle = '#aaa';
-    roadsY.forEach(y => ctx.fillRect(0, y - 5, canvas.width, 10));
+function drawCongestion() { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(congestion.x, congestion.y, congestion.radius, 0, 2 * Math.PI); ctx.fill(); }
 
-    cars.forEach(car => {
-      ctx.fillStyle = car.color;
-      ctx.beginPath();
-      ctx.arc(car.x, car.y, 7, 0, 2 * Math.PI);
-      ctx.fill();
-      car.x += car.speed;
-      if (car.x > canvas.width + 10) car.x = -10;
-    });
+function drawCars() { cars.forEach(car => { ctx.fillStyle = car.color; ctx.beginPath(); ctx.arc(car.x, car.y, 7, 0, 2 * Math.PI); ctx.fill(); }); }
 
-    requestAnimationFrame(draw);
+function updateCars() { cars.forEach(car => { car.x += car.speed;
+
+const distanceToCongestion = Math.hypot(car.x - congestion.x, car.y - congestion.y);
+  if (distanceToCongestion < congestion.radius + 7) {
+    const newIndex = (roadsY.indexOf(car.y) + 1) % roadsY.length;
+    car.y = roadsY[newIndex];
   }
 
-  draw();
-</script>
+  if (car.x > canvas.width + 10) car.x = -10;
+});
+
+}
+
+function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); drawRoads(); drawCongestion(); drawCars(); updateCars(); requestAnimationFrame(animate); }
+
+animate(); </script>
+
 </body>
 </html>
