@@ -1,33 +1,49 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
   <meta charset="utf-8">
-  <title>Адаптивная симуляция беспилотников</title>
+  <title>Беспилотники (упрощённая версия)</title>
   <style>
     body, html { margin: 0; padding: 0; overflow: hidden; }
-    canvas { background: #f0f0f0; display: block; }
+    canvas { background: #eee; }
   </style>
 </head>
 <body>
-<canvas id="simulation"></canvas>
+<canvas id="canvas"></canvas>
 <script>
-const canvas = document.getElementById('simulation');
-const ctx = canvas.getContext('2d');function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-window.addEventListener('resize', resizeCanvas); resizeCanvas();
+  const roadsY = [canvas.height * 0.3, canvas.height * 0.5, canvas.height * 0.7];
+  
+  const cars = Array.from({length: 8}, (_, i) => ({
+    x: Math.random() * canvas.width,
+    y: roadsY[i % roadsY.length],
+    speed: 2 + Math.random() * 3,
+    color: 'blue'
+  }));
 
-const roads = [ {yFactor: 0.25}, {yFactor: 0.5}, {yFactor: 0.75} ];
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-const cars = Array.from({length: 8}, (_, i) => ({ x: Math.random() * canvas.width, yFactor: roads[i % roads.length].yFactor, speed: 1 + Math.random() * 2, color: hsl(${Math.random() * 360}, 80%, 50%) }));
+    ctx.fillStyle = '#aaa';
+    roadsY.forEach(y => ctx.fillRect(0, y - 5, canvas.width, 10));
 
-function drawRoads() { ctx.fillStyle = '#999'; roads.forEach(road => { ctx.fillRect(0, canvas.height * road.yFactor - 5, canvas.width, 10); }); }
+    cars.forEach(car => {
+      ctx.fillStyle = car.color;
+      ctx.beginPath();
+      ctx.arc(car.x, car.y, 7, 0, 2 * Math.PI);
+      ctx.fill();
+      car.x += car.speed;
+      if (car.x > canvas.width + 10) car.x = -10;
+    });
 
-function drawCars() { cars.forEach(car => { ctx.fillStyle = car.color; ctx.beginPath(); ctx.arc(car.x, canvas.height * car.yFactor, 7, 0, Math.PI * 2); ctx.fill(); }); }
+    requestAnimationFrame(draw);
+  }
 
-function updateCars() { cars.forEach(car => { car.x += car.speed; if (car.x > canvas.width || car.x < 0) car.speed *= -1; }); }
-
-function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); drawRoads(); drawCars(); updateCars(); requestAnimationFrame(animate); }
-
-animate(); </script>
-
+  draw();
+</script>
 </body>
 </html>
