@@ -1,91 +1,31 @@
 <!DOCTYPE html><html>
 <head>
-  <meta charset="utf-8">
-  <title>Беспилотники в Павлодаре</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <meta charset=\"utf-8\">
+  <title>Условная симуляция беспилотников</title>
   <style>
-    #map { height: 100vh; }
-    .car {
-      background: blue;
-      border-radius: 50%;
-      width: 12px;
-      height: 12px;
-      position: absolute;
-    }
+    body, html { margin: 0; padding: 0; overflow: hidden; }
+    canvas { background: #f0f0f0; display: block; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    // Инициализация карты Павлодара
-    const map = L.map('map').setView([52.2872, 76.9674], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);// Фиксированные маршруты (условные координаты на карте)
-const routes = [
-  [[52.2900, 76.9600], [52.2920, 76.9700], [52.2890, 76.9800]],
-  [[52.2850, 76.9600], [52.2830, 76.9700], [52.2850, 76.9800]],
-  [[52.2880, 76.9550], [52.2885, 76.9650], [52.2890, 76.9750]],
-  [[52.2860, 76.9800], [52.2840, 76.9700], [52.2820, 76.9600]],
-  [[52.2910, 76.9800], [52.2925, 76.9700], [52.2940, 76.9600]],
-  [[52.2870, 76.9850], [52.2860, 76.9750], [52.2850, 76.9650]],
-  [[52.2840, 76.9600], [52.2845, 76.9700], [52.2850, 76.9800]],
-  [[52.2895, 76.9650], [52.2900, 76.9750], [52.2910, 76.9850]]
-];
+<canvas id=\"simulation\"></canvas>
+<script>
+const canvas = document.getElementById('simulation');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;const roads = [ {x: 100, y: 100, w: canvas.width - 200, h: 10}, {x: 100, y: 300, w: canvas.width - 200, h: 10}, {x: 100, y: 500, w: canvas.width - 200, h: 10} ];
 
-// Пробки (рандомно появляются и исчезают)
-let congestion = [];
-function randomizeCongestion() {
-  congestion = routes.map(route => {
-    const color = Math.random() < 0.33 ? 'green' : Math.random() < 0.5 ? 'yellow' : 'red';
-    return { segment: route[1], color };
-  });
-}
+const cars = Array.from({length: 8}, (_, i) => ({ x: 110, y: 105 + (i % roads.length) * 200, speed: 1 + Math.random() * 2, color: hsl(${Math.random() * 360}, 80%, 50%) }));
 
-function drawCongestion() {
-  congestion.forEach(({ segment, color }) => {
-    L.circleMarker(segment, {
-      radius: 10,
-      color,
-      fillColor: color,
-      fillOpacity: 0.5
-    }).addTo(map);
-  });
-}
+function drawRoads() { ctx.fillStyle = '#999'; roads.forEach(road => { ctx.fillRect(road.x, road.y, road.w, road.h); }); }
 
-function animateCar(route, delay) {
-  const marker = L.circleMarker(route[0], { radius: 6, color: 'blue', fillColor: 'blue', fillOpacity: 1 }).addTo(map);
-  let index = 0;
-  setTimeout(function move() {
-    index++;
-    if (index < route.length) {
-      marker.setLatLng(route[index]);
-      setTimeout(move, 1500);
-    }
-  }, delay);
-}
+function drawCars() { cars.forEach(car => { ctx.fillStyle = car.color; ctx.beginPath(); ctx.arc(car.x, car.y, 7, 0, Math.PI * 2); ctx.fill(); }); }
 
-// Запуск симуляции
-randomizeCongestion();
-drawCongestion();
+function updateCars() { cars.forEach(car => { car.x += car.speed; if (car.x > canvas.width - 110 || car.x < 110) car.speed *= -1; }); }
 
-routes.forEach((route, i) => {
-  animateCar(route, i * 800);
-});
+function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); drawRoads(); drawCars(); updateCars(); requestAnimationFrame(animate); }
 
-// Обновление пробок каждые 20 секунд
-setInterval(() => {
-  map.eachLayer(layer => {
-    if (layer instanceof L.CircleMarker && layer.options.radius === 10) {
-      map.removeLayer(layer);
-    }
-  });
-  randomizeCongestion();
-  drawCongestion();
-}, 20000);
+animate(); </script>
 
-  </script>
 </body>
 </html>
